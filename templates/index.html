@@ -4,7 +4,7 @@
     <title>Car Price Predictor</title>
 
     <link rel="stylesheet"
-    href="{{ url_for('static',filename='style.css') }}">
+    href="{{ url_for('static', filename='style.css') }}">
 </head>
 
 <body>
@@ -13,77 +13,60 @@
 
 <div class="container">
 
-<h1>🚗 AI Car Price Predictor</h1>
+    <h1>🚗 AI Car Price Predictor</h1>
 
-<form action="/predict" method="POST">
+    <form action="/predict" method="POST">
 
-<input type="text" name="brand"
-placeholder="Brand" required>
+        <input type="text" name="brand"
+        placeholder="Brand" required>
 
-<input type="text" name="model"
-placeholder="Model" required>
+        <input type="text" name="model"
+        placeholder="Model" required>
 
-<input type="number" name="year"
-placeholder="Year" required>
+        <input type="number" name="year"
+        placeholder="Year" required>
 
-<input type="number" name="km"
-placeholder="KM Driven" required>
+        <input type="number" name="km"
+        placeholder="KM Driven" required>
 
-<input type="text" name="fuel"
-placeholder="Fuel Type" required>
+        <input type="text" name="fuel"
+        placeholder="Fuel Type" required>
 
-<input type="number" step="0.1"
-name="mileage"
-placeholder="Mileage" required>
+        <input type="text" name="owner"
+        placeholder="Owner Type" required>
 
-<input type="text"
-name="transmission"
-placeholder="Transmission" required>
+        <input type="number" name="seats"
+        placeholder="Seats" required>
 
-<input type="text"
-name="owner"
-placeholder="Owner Type" required>
+        <button type="submit">
+            Predict Price
+        </button>
 
-<input type="number"
-name="engine"
-placeholder="Engine CC" required>
+    </form>
 
-<input type="number"
-name="seats"
-placeholder="Seats" required>
+    {% if prediction %}
 
-<button type="submit">
-Predict Price
-</button>
+    <div class="result">
 
-</form>
+        <h2>{{ prediction }}</h2>
 
-{% if prediction %}
+        <div class="view-data">
 
-<div class="result">
+            <h3>Entered Data</h3>
 
-<h2>{{ prediction }}</h2>
+            <p>Brand : {{ form_data.brand }}</p>
+            <p>Model : {{ form_data.model }}</p>
+            <p>Year : {{ form_data.year }}</p>
+            <p>KM Driven : {{ form_data.km }}</p>
+            <p>Fuel : {{ form_data.fuel }}</p>
+            <p>Owner : {{ form_data.owner }}</p>
+            <p>Seats : {{ form_data.seats }}</p>
 
-<div class="view-data">
+        </div>
 
-<h3>Entered Data</h3>
+    </div>
 
-<p>Brand : {{ form_data.brand }}</p>
-<p>Model : {{ form_data.model }}</p>
-<p>Year : {{ form_data.year }}</p>
-<p>KM Driven : {{ form_data.km }}</p>
-<p>Fuel : {{ form_data.fuel }}</p>
-<p>Mileage : {{ form_data.mileage }}</p>
-<p>Transmission : {{ form_data.transmission }}</p>
-<p>Owner : {{ form_data.owner }}</p>
-<p>Engine : {{ form_data.engine }}</p>
-<p>Seats : {{ form_data.seats }}</p>
-
-</div>
-
-</div>
-
-{% endif %}
+    {% endif %}
 
 </div>
 
