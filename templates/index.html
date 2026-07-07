@@ -1,10 +1,11 @@
 <!DOCTYPE html>
-<html>
-<head>
-    <title>Car Price Predictor</title>
+<html lang="en">
 
-    <link rel="stylesheet"
-    href="{{ url_for('static', filename='style.css') }}">
+<head>
+    <meta charset="UTF-8">
+    <title>AI Car Price Predictor</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 
 <body>
@@ -17,26 +18,104 @@
 
     <form action="/predict" method="POST">
 
-        <input type="text" name="brand"
-        placeholder="Brand" required>
+        <input type="text"
+               name="brand"
+               placeholder="Enter Brand"
+               required>
 
-        <input type="text" name="model"
-        placeholder="Model" required>
+        <input type="text"
+               name="model"
+               placeholder="Enter Model"
+               required>
 
-        <input type="number" name="year"
-        placeholder="Year" required>
+        <input type="number"
+               name="year"
+               placeholder="Manufacturing Year"
+               required>
 
-        <input type="number" name="km"
-        placeholder="KM Driven" required>
+        <input type="number"
+               name="km"
+               placeholder="KM Driven"
+               required>
 
-        <input type="text" name="fuel"
-        placeholder="Fuel Type" required>
+        <!-- Fuel Type -->
 
-        <input type="text" name="owner"
-        placeholder="Owner Type" required>
+        <div class="group">
 
-        <input type="number" name="seats"
-        placeholder="Seats" required>
+            <h3>Fuel Type</h3>
+
+            <label>
+                <input type="radio"
+                       name="fuel"
+                       value="Petrol"
+                       required>
+                Petrol
+            </label>
+
+            <label>
+                <input type="radio"
+                       name="fuel"
+                       value="Diesel">
+                Diesel
+            </label>
+
+            <label>
+                <input type="radio"
+                       name="fuel"
+                       value="CNG">
+                CNG
+            </label>
+
+        </div>
+
+
+        <!-- Owner Type -->
+
+        <div class="group">
+
+            <h3>Owner Type</h3>
+
+            <select name="owner" required>
+
+                <option value="">Select Owner</option>
+
+                <option value="First Owner">First Owner</option>
+
+                <option value="Second Owner">Second Owner</option>
+
+                <option value="Third Owner">Third Owner</option>
+
+                <option value="Fourth & Above Owner">
+                    Fourth & Above Owner
+                </option>
+
+            </select>
+
+        </div>
+
+
+        <!-- Seats -->
+
+        <div class="group">
+
+            <h3>Seats</h3>
+
+            <label>
+                <input type="radio"
+                       name="seats"
+                       value="5"
+                       required>
+                5 Seats
+            </label>
+
+            <label>
+                <input type="radio"
+                       name="seats"
+                       value="7">
+                7 Seats
+            </label>
+
+        </div>
 
         <button type="submit">
             Predict Price
@@ -48,21 +127,27 @@
 
     <div class="result">
 
-        <h2>{{ prediction }}</h2>
+        <h2>Predicted Price</h2>
 
-        <div class="view-data">
+        <h1>{{ prediction }}</h1>
 
-            <h3>Entered Data</h3>
+        <hr>
 
-            <p>Brand : {{ form_data.brand }}</p>
-            <p>Model : {{ form_data.model }}</p>
-            <p>Year : {{ form_data.year }}</p>
-            <p>KM Driven : {{ form_data.km }}</p>
-            <p>Fuel : {{ form_data.fuel }}</p>
-            <p>Owner : {{ form_data.owner }}</p>
-            <p>Seats : {{ form_data.seats }}</p>
+        <h3>Entered Details</h3>
 
-        </div>
+        <p><b>Brand :</b> {{ form_data.brand }}</p>
+
+        <p><b>Model :</b> {{ form_data.model }}</p>
+
+        <p><b>Year :</b> {{ form_data.year }}</p>
+
+        <p><b>KM Driven :</b> {{ form_data.km }}</p>
+
+        <p><b>Fuel :</b> {{ form_data.fuel }}</p>
+
+        <p><b>Owner :</b> {{ form_data.owner }}</p>
+
+        <p><b>Seats :</b> {{ form_data.seats }}</p>
 
     </div>
 
@@ -71,4 +156,5 @@
 </div>
 
 </body>
+
 </html>
