@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>AI Car Price Predictor</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+{% set fd = form_data or {} %}
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-car" viewBox="0 0 24 24"><path d="M5 16l1.5-5a2 2 0 0 1 1.9-1.4h7.2a2 2 0 0 1 1.9 1.4L19 16M3 16h18v3H3z"/><circle cx="7.5" cy="19" r="1.2"/><circle cx="16.5" cy="19" r="1.2"/></symbol>
+  <symbol id="i-tag" viewBox="0 0 24 24"><path d="M3 12V4h8l9 9-8 8z"/><circle cx="7.5" cy="8.5" r="1"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+</svg>
+
+<div class="app" id="app">
+
+    <!-- ================= SIDEBAR ================= -->
+    <aside class="side" id="side">
+        <div class="side-top">
+            <span class="logo"><svg class="ic"><use href="#i-car"/></svg></span>
+            <span class="label brand-name">CarPrice AI</span>
+            <button type="button" class="collapse" id="collapseBtn" aria-label="Collapse or expand sidebar" aria-expanded="true">
+                <svg class="ic"><use href="#i-chev"/></svg>
+            </button>
+        </div>
+
+        <nav class="nav-list">
+            <a class="nav active" href="#" data-go="predictor"><svg class="ic"><use href="#i-car"/></svg><span class="label">Predictor</span></a>
+            <a class="nav" href="#" data-go="estimate"><svg class="ic"><use href="#i-tag"/></svg><span class="label">Estimate</span></a>
+            <a class="nav" href="#" data-go="history"><svg class="ic"><use href="#i-clock"/></svg><span class="label">History</span></a>
+            <a class="nav" href="#" data-go="about"><svg class="ic"><use href="#i-info"/></svg><span class="label">About model</span></a>
+        </nav>
+
+        <div class="hist label" id="history">
+            <div class="hist-head"><span>Recent estimates</span><button type="button" id="clearHist">Clear</button></div>
+            <ul id="histList"></ul>
+        </div>
+
+        <p class="side-foot label">Multiple linear Regression · R² 0.95</p>
+    </aside>
+    <div class="scrim" id="scrim"></div>
+
+    <!-- ================= MAIN ================= -->
+    <div class="main">
+        <header class="top">
+            <button type="button" class="menu" id="menuBtn" aria-label="Open menu"><svg class="ic"><use href="#i-menu"/></svg></button>
+            <div>
+                <h1 id="pageTitle">Used Car Price Predictor</h1>
+                <p id="pageSub">Enter the car details and get an instant resale estimate.</p>
+            </div>
+        </header>
+
+        <div class="content view active" data-view="predictor">
+
+            <!-- ===== Form ===== -->
+            <section class="card" id="predictor">
+                <div class="progress" aria-hidden="true"><span id="bar"></span></div>
+                <p class="progress-text"><span id="done">0</span> of 7 details added</p>
+
+                <form action="/predict" method="POST" id="carForm" novalidate>
+                    <fieldset>
+                        <legend>The car</legend>
+                        <div class="grid two">
+                            <label class="field"><span>Brand</span>
+                                <select name="brand" required>
+                                    <option value="" disabled {% if not fd.brand %}selected{% endif %}>Select brand</option>
+                                    {% for b in ['Honda','Hyundai','Kia','Mahindra','Maruti','Tata','Toyota'] %}
+                                    <option value="{{ b }}" {% if fd.brand == b %}selected{% endif %}>{{ b }}</option>
+                                    {% endfor %}
+                                </select>
+                            </label>
+                            <label class="field"><span>Model</span>
+                                <input type="text" name="model" list="models" placeholder="e.g. Innova" autocomplete="off" value="{{ fd.model or '' }}" required>
+                                <datalist id="models">
+                                    <option value="Innova"><option value="Carens"><option value="Punch"><option value="WagonR">
+                                    <option value="City"><option value="Bolero"><option value="Verna"><option value="Harrier">
+                                </datalist>
+                            </label>
+                        </div>
+                    </fieldset>
+
+                    <fieldset>
+                        <legend>Age and usage</legend>
+                        <div class="grid two">
+                            <label class="field"><span>Manufacturing year</span>
+                                <input type="number" name="year" min="2000" max="2026" inputmode="numeric" placeholder="e.g. 2019" value="{{ fd.year or '' }}" required>
+                            </label>
+                            <label class="field"><span>Kilometres driven</span>
+                                <div class="suffix"><input type="number" name="km" min="0" step="any" inputmode="numeric" placeholder="e.g. 45000" value="{{ fd.km or '' }}" required><em>km</em></div>
+                            </label>
+                        </div>
+                    </fieldset>
+
+                    <fieldset>
+                        <legend>Fuel type</legend>
+                        <div class="pills three">
+                            {% for f in ['Petrol','Diesel','CNG'] %}
+                            <label class="pill"><input type="radio" name="fuel" value="{{ f }}" {% if fd.fuel == f %}checked{% endif %} required><span>{{ f }}</span></label>
+                            {% endfor %}
+                        </div>
+                    </fieldset>
+
+                    <fieldset>
+                        <legend>Ownership</legend>
+                        <div class="pills two">
+                            {% for o in ['First Owner','Second Owner','Third Owner','Fourth & Above Owner'] %}
+                            <label class="pill"><input type="radio" name="owner" value="{{ o }}" {% if fd.owner == o %}checked{% endif %} required><span>{{ o }}</span></label>
+                            {% endfor %}
+                        </div>
+                    </fieldset>
+
+                    <fieldset>
+                        <legend>Seats</legend>
+                        <div class="pills two">
+                            {% for s in ['5','7'] %}
+                            <label class="pill"><input type="radio" name="seats" value="{{ s }}" {% if fd.seats == s %}checked{% endif %} required><span>{{ s }} seats</span></label>
+                            {% endfor %}
+                        </div>
+                    </fieldset>
+
+                    <p class="form-msg" id="formMsg" role="alert" hidden></p>
+                    <button type="submit" class="cta" id="submitBtn"><span class="btn-text">Get price estimate</span><span class="spinner" aria-hidden="true"></span></button>
+                </form>
+            </section>
+
+            <!-- ===== Result ===== -->
+            <section class="card result" id="result" data-prediction="{{ prediction or '' }}" aria-live="polite">
+                <div id="resBody">
+                    <p class="val-label">Estimated resale value</p>
+                    <p class="price idle">₹ – – – – –</p>
+                    <p class="price-words">Fill in the form to see your estimate here.</p>
+                </div>
+                <dl class="summary">
+                    <div><dt>Car</dt><dd data-s="car">–</dd></div>
+                    <div><dt>Year</dt><dd data-s="year">–</dd></div>
+                    <div><dt>Driven</dt><dd data-s="km">–</dd></div>
+                    <div><dt>Fuel</dt><dd data-s="fuel">–</dd></div>
+                    <div><dt>Owner</dt><dd data-s="owner">–</dd></div>
+                    <div><dt>Seats</dt><dd data-s="seats">–</dd></div>
+                </dl>
+                <noscript>{% if prediction %}<p class="price">{{ prediction }}</p>{% endif %}</noscript>
+            </section>
+
+        </div>
+
+        <div class="page view" data-view="estimate"><section class="card est" id="estView"></section></div>
+
+        <div class="page view" data-view="history">
+            <section class="card">
+                <div class="sec-head"><h2>Estimate history</h2><button type="button" class="mini" id="clearAll">Clear all</button></div>
+                <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Car</th><th>Year</th><th>Driven</th><th>Fuel</th><th>Owner</th><th>Seats</th><th>Estimate</th><th></th></tr></thead><tbody id="histBody"></tbody></table></div>
+                <p class="empty-note" id="histEmpty" hidden>No estimates yet. Make a prediction and it will appear here.</p>
+            </section>
+        </div>
+
+        <div class="page view" data-view="about">
+            <div class="about">
+                <div class="stat"><b>1,00,000+</b><span>listings used for training</span></div>
+                <div class="stat"><b>0.95</b><span>R² score on test data</span></div>
+                <div class="stat"><b>≈ ₹5k</b><span>average prediction error</span></div>
+            </div>
+            <section class="card">
+                <h2>What drives the price</h2>
+                <p class="sub">How much each input matters to the Random Forest model</p>
+                <div class="imp"><span>Year</span><div><i style="width:97.9%"></i></div><b>69.9%</b></div><div class="imp"><span>KM driven</span><div><i style="width:32.8%"></i></div><b>23.4%</b></div><div class="imp"><span>Model</span><div><i style="width:3.5%"></i></div><b>2.5%</b></div><div class="imp"><span>Brand</span><div><i style="width:1.8%"></i></div><b>1.3%</b></div><div class="imp"><span>Seats</span><div><i style="width:1.7%"></i></div><b>1.2%</b></div><div class="imp"><span>Owner</span><div><i style="width:1.3%"></i></div><b>0.9%</b></div><div class="imp"><span>Fuel</span><div><i style="width:1.3%"></i></div><b>0.9%</b></div>
+            </section>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    const $ = id => document.getElementById(id), app = $('app'), form = $('carForm');
+    const F = ['brand','model','year','km','fuel','owner','seats'], MAE = 57011, HK = 'cpHist', SK = 'cpSide';
+    const inr = n => '₹ ' + Math.round(n).toLocaleString('en-US');
+    const words = n => n >= 1e7 ? (n/1e7).toFixed(2) + ' crore' : n >= 1e5 ? (n/1e5).toFixed(2) + ' lakh' : '';
+    const val = n => { const e = form.elements[n]; if (e.length && e[0].type === 'radio') { const c = [...e].find(r => r.checked); return c ? c.value : ''; } return e.value.trim(); };
+    const mobile = () => matchMedia('(max-width:900px)').matches;
+    const store = {
+        get: () => { try { return JSON.parse(localStorage.getItem(HK)) || []; } catch (e) { return []; } },
+        set: h => { try { localStorage.setItem(HK, JSON.stringify(h.slice(0, 20))); } catch (e) {} }
+    };
+
+    /* ---- Sidebar ---- */
+    function setSide(c) { app.classList.toggle('collapsed', c); $('collapseBtn').setAttribute('aria-expanded', !c); try { localStorage.setItem(SK, c ? '1' : '0'); } catch (e) {} }
+    try { if (localStorage.getItem(SK) === '1') setSide(true); } catch (e) {}
+    const toggle = () => mobile() ? app.classList.toggle('open') : setSide(!app.classList.contains('collapsed'));
+    $('collapseBtn').onclick = () => mobile() ? app.classList.remove('open') : toggle();
+    $('menuBtn').onclick = toggle;
+    $('scrim').onclick = () => app.classList.remove('open');
+    document.querySelectorAll('.nav').forEach(a => a.addEventListener('click', () => app.classList.remove('open')));
+
+    /* ---- Live summary + progress ---- */
+    let locked = false; // once an estimate is shown, its details stay in the card
+    function refresh() {
+        const v = Object.fromEntries(F.map(f => [f, val(f)]));
+        const set = (k, t) => { if (locked) return; const el = document.querySelector('[data-s="' + k + '"]'); el.textContent = t || '–'; el.classList.toggle('filled', !!t); };
+        set('car', [v.brand, v.model].filter(Boolean).join(' '));
+        set('year', v.year);
+        set('km', v.km ? Number(v.km).toLocaleString('en-IN') + ' km' : '');
+        set('fuel', v.fuel); set('owner', v.owner);
+        set('seats', v.seats ? v.seats + ' seats' : '');
+        const n = F.filter(f => v[f] !== '').length;
+        $('done').textContent = n; $('bar').style.width = (n / 7 * 100) + '%';
+    }
+    form.addEventListener('input', refresh); form.addEventListener('change', refresh); refresh();
+
+    /* ---- History ---- */
+    function fill(x) {
+        ['brand','model','year','km'].forEach(k => form.elements[k].value = x[k]);
+        ['fuel','owner','seats'].forEach(k => [...form.elements[k]].forEach(r => r.checked = r.value === x[k]));
+        refresh(); go('predictor');
+    }
+    function renderHist() {
+        const h = store.get(), ul = $('histList'); ul.innerHTML = '';
+        if (!h.length) { ul.innerHTML = '<li class="empty">No estimates yet</li>'; return; }
+        h.slice(0, 5).forEach(x => {
+            const li = document.createElement('li'), b = document.createElement('button');
+            b.type = 'button'; b.title = 'Load these details';
+            const t = document.createElement('b'), p = document.createElement('span');
+            t.textContent = x.brand + ' ' + x.model + ' · ' + x.year; p.textContent = inr(x.price);
+            b.append(t, p); b.onclick = () => fill(x); li.appendChild(b); ul.appendChild(li);
+        });
+    }
+    $('clearHist').onclick = () => { store.set([]); renderHist(); };
+    renderHist();
+
+    /* ---- Dynamic result ---- */
+    function showResult(pred) {
+        const box = $('resBody');
+        if (/^Error/.test(pred)) {
+            box.innerHTML = '<p class="val-label err">We couldn\'t estimate this car</p><p class="err-text"></p>';
+            box.querySelector('.err-text').textContent = /unseen|previously/.test(pred)
+                ? 'One of the values wasn\'t recognised. Pick the model from the suggestions, spelled exactly.'
+                : 'Please check your entries and try again.';
+            return;
+        }
+        const price = Number(pred.replace(/\D/g, '')), h = store.get(), prev = h[0];
+        let delta = '';
+        if (prev) { const d = price - prev.price; delta = d === 0 ? '<span class="chip">Same as last estimate</span>' :
+            '<span class="chip ' + (d > 0 ? 'up' : 'down') + '">' + (d > 0 ? '▲ ' : '▼ ') + inr(Math.abs(d)) + ' vs last estimate</span>'; }
+        box.innerHTML =
+            '<p class="val-label">Estimated resale value</p><p class="price" id="livePrice">₹ 0</p><p class="for" id="forCar"></p>' +
+            '<p class="price-words">' + (words(price) ? '≈ ' + words(price) : '') + '</p>' + delta +
+            '<div class="range"><div class="rtrack"><span class="rfill" id="rfill"></span><i class="rdot"></i></div>' +
+            '<div class="rlab"><span>' + inr(Math.max(0, price - MAE)) + '</span><span>' + inr(price + MAE) + '</span></div>' +
+            '<p class="rnote">Likely range, based on the model\'s typical error of ≈ ' + inr(MAE) + '.</p></div><button type="button" class="link" data-go="estimate">View full report →</button>';
+        $('forCar').textContent = [[val('brand'), val('model')].join(' '), val('year'), Number(val('km')).toLocaleString('en-IN') + ' km', val('fuel'), val('owner'), val('seats') + ' seats'].join(' · ');
+        requestAnimationFrame(() => $('rfill').classList.add('go'));
+        const el = $('livePrice'), t0 = performance.now();
+        if (matchMedia('(prefers-reduced-motion: reduce)').matches) el.textContent = inr(price);
+        else (function tick(t) { const p = Math.min((t - t0) / 1100, 1);
+            el.textContent = inr(price * (1 - Math.pow(1 - p, 3))); if (p < 1) requestAnimationFrame(tick); else el.textContent = inr(price); })(t0);
+        const rec = { price, t: Date.now() }; F.forEach(f => rec[f] = val(f));
+        h.unshift(rec); store.set(h); renderHist();
+        $('result').classList.remove('pulse'); void $('result').offsetWidth; $('result').classList.add('pulse');
+        if (mobile()) $('result').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        locked = false; refresh(); locked = true; // freeze the details of this estimate
+        return true;
+    }
+
+    /* ---- Reset the form after a successful estimate ---- */
+    function clearForm() {
+        form.elements.brand.selectedIndex = 0;
+        ['model','year','km'].forEach(k => form.elements[k].value = '');
+        ['fuel','owner','seats'].forEach(k => [...form.elements[k]].forEach(r => r.checked = false));
+        $('formMsg').hidden = true;
+        refresh();
+    }
+
+    /* ---- Submit without page reload (falls back to normal submit) ---- */
+    form.addEventListener('submit', async e => {
+        e.preventDefault();
+        const msg = $('formMsg'), missing = F.filter(f => val(f) === ''), y = Number(val('year'));
+        let problem = missing.length ? 'Please fill in every field: ' + missing.join(', ') + '.'
+            : (y < 2000 || y > 2026) ? 'Enter a manufacturing year between 2000 and 2026.'
+            : Number(val('km')) < 0 ? 'Kilometres driven cannot be negative.' : '';
+        msg.hidden = !problem; msg.textContent = problem;
+        if (problem) return;
+        const btn = $('submitBtn'); btn.classList.add('loading');
+        try {
+            const r = await fetch(form.action, { method: 'POST', body: new FormData(form) });
+            const doc = new DOMParser().parseFromString(await r.text(), 'text/html');
+            const p = doc.getElementById('result').dataset.prediction;
+            if (!p) throw new Error('empty');
+            if (showResult(p)) clearForm();
+        } catch (err) { form.submit(); }
+        btn.classList.remove('loading');
+    });
+
+    /* ---- Views: predictor / estimate / history / about ---- */
+    const T = { predictor: ['Used Car Price Predictor', 'Enter the car details and get an instant resale estimate.'],
+        estimate: ['Estimate report', 'Full breakdown of your latest prediction.'],
+        history: ['Estimate history', 'Every prediction saved on this device.'],
+        about: ['About the model', 'How the predictions are made.'] };
+    const el = (t, c, x) => { const n = document.createElement(t); if (c) n.className = c; if (x !== undefined) n.textContent = x; return n; };
+    function go(v) {
+        document.querySelectorAll('.view').forEach(s => s.classList.toggle('active', s.dataset.view === v));
+        document.querySelectorAll('.nav').forEach(a => a.classList.toggle('active', a.dataset.go === v));
+        $('pageTitle').textContent = T[v][0]; $('pageSub').textContent = T[v][1];
+        if (v === 'estimate') renderEstimate(0);
+        if (v === 'history') renderTable();
+        app.classList.remove('open'); window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    document.addEventListener('click', e => { const t = e.target.closest('[data-go]'); if (t) { e.preventDefault(); go(t.dataset.go); } });
+
+    function renderEstimate(i) {
+        const h = store.get(), x = h[i], box = $('estView'); box.innerHTML = '';
+        if (!x) {
+            box.innerHTML = '<div class="est-empty"><h2>No estimate yet</h2><p class="sub">Make a prediction and its full report will appear here.</p><button type="button" class="cta small" data-go="predictor">Go to predictor</button></div>';
+            return;
+        }
+        const price = Number(x.price), age = Math.max(0, 2026 - Number(x.year)), km = Number(x.km);
+        const head = el('div', 'est-head'); head.append(el('h2', '', x.brand + ' ' + x.model));
+        if (x.t) head.append(el('span', 'sub', new Date(x.t).toLocaleString()));
+        const hero = el('div', 'est-hero');
+        hero.innerHTML = '<p class="val-label">Estimated resale value</p><p class="price">' + inr(price) + '</p><p class="price-words">' + (words(price) ? '≈ ' + words(price) : '') +
+            '</p><div class="range"><div class="rtrack"><span class="rfill go"></span><i class="rdot"></i></div><div class="rlab"><span>' + inr(Math.max(0, price - MAE)) + '</span><span>' + inr(price + MAE) +
+            '</span></div><p class="rnote">Likely range, based on the model\'s typical error of ≈ ' + inr(MAE) + '.</p></div>';
+        const tiles = el('div', 'tiles');
+        [['Year', x.year], ['Driven', km.toLocaleString('en-IN') + ' km'], ['Fuel', x.fuel], ['Owner', x.owner], ['Seats', x.seats],
+         ['Car age', age + (age === 1 ? ' year' : ' years')], ['Average use', Math.round(age ? km / age : km).toLocaleString('en-IN') + ' km/yr'], ['Brand', x.brand]]
+            .forEach(([k, v]) => { const t = el('div', 'tile'); t.append(el('span', '', k), el('b', '', v)); tiles.append(t); });
+        const cmp = el('div', 'cmp'); cmp.append(el('h3', '', 'Compared with your recent estimates'));
+        const max = Math.max(...h.slice(0, 6).map(r => Number(r.price)));
+        h.slice(0, 6).forEach((r, j) => {
+            const row = el('div', 'crow' + (j === i ? ' cur' : '')), bar = el('div', 'cbar'), fill = el('i');
+            fill.style.width = (Number(r.price) / max * 100) + '%'; bar.append(fill);
+            row.append(el('span', '', r.brand + ' ' + r.model + ' ' + r.year), bar, el('b', '', inr(Number(r.price)))); cmp.append(row);
+        });
+        const tip = el('p', 'insight', 'Year and kilometres driven influence this model the most (about 70% and 23% of its decisions).');
+        const acts = el('div', 'actions'), n = el('button', 'cta small', 'New estimate'), ed = el('button', 'mini big', 'Edit these details');
+        n.type = ed.type = 'button'; n.dataset.go = 'predictor'; ed.onclick = () => fill(x); acts.append(n, ed);
+        box.append(head, hero, tiles, cmp, tip, acts);
+    }
+
+    function renderTable() {
+        const h = store.get(), b = $('histBody'); b.innerHTML = ''; $('histEmpty').hidden = !!h.length;
+        h.forEach((x, i) => {
+            const tr = b.insertRow();
+            [x.brand + ' ' + x.model, x.year, Number(x.km).toLocaleString('en-IN') + ' km', x.fuel, x.owner, x.seats, inr(Number(x.price))]
+                .forEach((v, j) => { const td = tr.insertCell(); td.textContent = v; if (j === 6) td.className = 'pr'; });
+            const td = tr.insertCell(); td.className = 'acts';
+            [['View', () => { go('estimate'); renderEstimate(i); }], ['Load', () => fill(x)],
+             ['Delete', () => { const a = store.get(); a.splice(i, 1); store.set(a); renderHist(); renderTable(); }]]
+                .forEach(([t, f]) => { const bt = el('button', 'mini', t); bt.type = 'button'; bt.onclick = f; td.append(bt); });
+        });
+    }
+    $('clearAll').onclick = () => { store.set([]); renderHist(); renderTable(); };
+
+    const first = $('result').dataset.prediction;
+    if (first && showResult(first)) clearForm();
+})();
+</script>
+</body>
+</html>
